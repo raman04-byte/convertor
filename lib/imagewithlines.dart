@@ -163,13 +163,7 @@ class _ImageWithTextLinesState extends State<ImageWithTextLines> {
                       textBlocks: widget.textBlock,
                       imageSize: snapshot.data!,
                       convertedBlocks: convertedTextBlockList),
-                ),
-                // if (currentBlock != null)
-                //   CustomPaint(
-                //     painter: TextBlockPainter(
-                //         textBlocks: widget.textBlock,
-                //         imageSize: snapshot.data!),
-                //   ),
+                ), 
               ],
             ),
           );
