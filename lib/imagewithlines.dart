@@ -118,12 +118,7 @@ class _ImageWithTextLinesState extends State<ImageWithTextLines> {
     super.initState();
     extractLinesFromBlocks(widget.textBlock);
     textIntoBlockConverter();
-    Future.delayed(const Duration(seconds: 2), () {
-      setState(() {
-        
-      });
-    });
-  }
+    }
 
   void textIntoBlockConverter() async {
     for (var textBB in widget.textBlock) {
@@ -132,9 +127,9 @@ class _ImageWithTextLinesState extends State<ImageWithTextLines> {
           targetLanguage: TranslateLanguage.hindi);
       var response = await onDeviceTranslator.translateText(textBB.text);
       convertedTextBlockList.add(response);
-      if (kDebugMode) {
-        print(convertedTextBlockList);
-      }
+      setState(() {
+        
+      });
     }
   }
 
