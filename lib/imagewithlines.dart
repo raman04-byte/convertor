@@ -1,18 +1,21 @@
 import 'dart:async';
 import 'dart:io';
-import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_tts/flutter_tts.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 
 class TextBlockPainters extends CustomPainter {
   final List<TextBlock> textBlocks;
   final Size imageSize;
   final List<String> convertedBlocks;
+  final double padding;
   TextBlockPainters(
       {required this.textBlocks,
       required this.imageSize,
-      required this.convertedBlocks});
+      required this.convertedBlocks,
+      this.padding = 4.0});
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -20,12 +23,9 @@ class TextBlockPainters extends CustomPainter {
   }
 
   void mypaint(Canvas canvas, Size size) async {
-    final backgroundColor = Paint()..color = Colors.white;
-    final borderPaint = Paint()
-      ..color = Colors.transparent
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.0;
-
+    final bgcolor = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.fill;
     for (var textBlock in textBlocks) {
       final rect = Rect.fromLTRB(
         textBlock.boundingBox.left,
@@ -39,18 +39,25 @@ class TextBlockPainters extends CustomPainter {
       final right = rect.right * size.width / imageSize.width;
       final bottom = rect.bottom * size.height / imageSize.height;
 
-      canvas.drawRect(Rect.fromLTRB(left, top, right, bottom), backgroundColor);
-      canvas.drawRect(Rect.fromLTRB(left, top, right, bottom), borderPaint);
+      final paddedLeft = left + padding;
+      canvas.drawRect(Rect.fromLTRB(left, top, right, bottom), bgcolor);
+      // canvas.drawRect(Rect.fromLTRB(left, top, right, bottom), border);
       final textPainter = TextPainter(
         text: TextSpan(
-            text: convertedBlocks[textBlocks.indexOf(textBlock)],
-            style: const TextStyle(
-                backgroundColor: Colors.white, color: Colors.black)),
+          text: convertedBlocks[textBlocks.indexOf(textBlock)],
+          style: const TextStyle(
+              fontSize: 8.5,
+              fontStyle: FontStyle.normal,
+              backgroundColor: Color.fromRGBO(248, 248, 248, 255),
+              color: Colors.black),
+        ),
         textDirection: TextDirection.ltr,
+        textAlign: TextAlign.justify,
       );
-      textPainter.layout();
-      final textX = left + (right - left - textPainter.width) / 2;
-      final textY = top + (bottom - top - textPainter.height) / 2;
+      textPainter.layout(
+          maxWidth: right - left); // Set the maximum width constraint
+      final textX = paddedLeft;
+      final textY = top;
       textPainter.paint(canvas, Offset(textX, textY));
     }
   }
@@ -58,44 +65,9 @@ class TextBlockPainters extends CustomPainter {
   @override
   bool shouldRepaint(TextBlockPainters oldDelegate) {
     return oldDelegate.textBlocks != textBlocks ||
-        oldDelegate.imageSize != imageSize;
-  }
-}
-
-class TextBlockPainter extends CustomPainter {
-  final List<TextBlock> textBlocks;
-  final Size imageSize;
-
-  TextBlockPainter({required this.textBlocks, required this.imageSize});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.blue
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.0;
-
-    for (var textBlock in textBlocks) {
-      final rect = Rect.fromLTRB(
-        textBlock.boundingBox.left,
-        textBlock.boundingBox.top,
-        textBlock.boundingBox.right,
-        textBlock.boundingBox.bottom,
-      );
-
-      final left = rect.left * size.width / imageSize.width;
-      final top = rect.top * size.height / imageSize.height;
-      final right = rect.right * size.width / imageSize.width;
-      final bottom = rect.bottom * size.height / imageSize.height;
-
-      canvas.drawRect(Rect.fromLTRB(left, top, right, bottom), paint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(TextBlockPainter oldDelegate) {
-    return oldDelegate.textBlocks != textBlocks ||
-        oldDelegate.imageSize != imageSize;
+        oldDelegate.imageSize != imageSize ||
+        oldDelegate.convertedBlocks != convertedBlocks ||
+        oldDelegate.padding != padding;
   }
 }
 
@@ -118,8 +90,9 @@ class _ImageWithTextLinesState extends State<ImageWithTextLines> {
     super.initState();
     extractLinesFromBlocks(widget.textBlock);
     textIntoBlockConverter();
-    }
+  }
 
+  FlutterTts flutterTts = FlutterTts();
   void textIntoBlockConverter() async {
     for (var textBB in widget.textBlock) {
       OnDeviceTranslator onDeviceTranslator = OnDeviceTranslator(
@@ -127,9 +100,10 @@ class _ImageWithTextLinesState extends State<ImageWithTextLines> {
           targetLanguage: TranslateLanguage.hindi);
       var response = await onDeviceTranslator.translateText(textBB.text);
       convertedTextBlockList.add(response);
-      setState(() {
-        
-      });
+      if (kDebugMode) {
+        print(response);
+      }
+      setState(() {});
     }
   }
 
@@ -153,12 +127,13 @@ class _ImageWithTextLinesState extends State<ImageWithTextLines> {
                   File(widget.imagePath),
                   fit: BoxFit.fill,
                 ),
-              if(convertedTextBlockList.length==widget.textBlock.length) CustomPaint(
-                  painter: TextBlockPainters(
-                      textBlocks: widget.textBlock,
-                      imageSize: snapshot.data!,
-                      convertedBlocks: convertedTextBlockList),
-                ), 
+                if (convertedTextBlockList.length == widget.textBlock.length)
+                  CustomPaint(
+                    painter: TextBlockPainters(
+                        textBlocks: widget.textBlock,
+                        imageSize: snapshot.data!,
+                        convertedBlocks: convertedTextBlockList),
+                  ),
               ],
             ),
           );
