@@ -10,12 +10,12 @@ class TextBlockPainters extends CustomPainter {
   final List<TextBlock> textBlocks;
   final Size imageSize;
   final List<String> convertedBlocks;
-  final double padding;
-  TextBlockPainters(
-      {required this.textBlocks,
-      required this.imageSize,
-      required this.convertedBlocks,
-      this.padding = 4.0});
+
+  TextBlockPainters({
+    required this.textBlocks,
+    required this.imageSize,
+    required this.convertedBlocks,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -23,6 +23,7 @@ class TextBlockPainters extends CustomPainter {
   }
 
   void mypaint(Canvas canvas, Size size) async {
+    double padding = 4.0;
     final bgcolor = Paint()
       ..color = Colors.white
       ..style = PaintingStyle.fill;
@@ -41,7 +42,6 @@ class TextBlockPainters extends CustomPainter {
 
       final paddedLeft = left + padding;
       canvas.drawRect(Rect.fromLTRB(left, top, right, bottom), bgcolor);
-      // canvas.drawRect(Rect.fromLTRB(left, top, right, bottom), border);
       final textPainter = TextPainter(
         text: TextSpan(
           text: convertedBlocks[textBlocks.indexOf(textBlock)],
@@ -54,8 +54,7 @@ class TextBlockPainters extends CustomPainter {
         textDirection: TextDirection.ltr,
         textAlign: TextAlign.justify,
       );
-      textPainter.layout(
-          maxWidth: right - left); // Set the maximum width constraint
+      textPainter.layout(maxWidth: right - left);
       final textX = paddedLeft;
       final textY = top;
       textPainter.paint(canvas, Offset(textX, textY));
@@ -66,8 +65,7 @@ class TextBlockPainters extends CustomPainter {
   bool shouldRepaint(TextBlockPainters oldDelegate) {
     return oldDelegate.textBlocks != textBlocks ||
         oldDelegate.imageSize != imageSize ||
-        oldDelegate.convertedBlocks != convertedBlocks ||
-        oldDelegate.padding != padding;
+        oldDelegate.convertedBlocks != convertedBlocks;
   }
 }
 
