@@ -98,23 +98,6 @@ class TextBlockPainters extends CustomPainter {
       canvas.drawRect(Rect.fromLTRB(left, top, right, bottom), bgcolor);
 
       _renderText(canvas, Rect.fromLTRB(left, top, right, bottom), convertedBlocks[textBlocks.indexOf(textBlock)],right,left,paddedLeft,top);
-
-      // final textPainter = TextPainter(
-      //   text: TextSpan(
-      //     text: convertedBlocks[textBlocks.indexOf(textBlock)],
-      //     style: const TextStyle(
-      //         fontSize: 8.5,
-      //         fontStyle: FontStyle.normal,
-      //         backgroundColor: Color.fromRGBO(248, 248, 248, 255),
-      //         color: Colors.black),
-      //   ),
-      //   textDirection: TextDirection.ltr,
-      //   textAlign: TextAlign.justify,
-      // );
-      // textPainter.layout(maxWidth: right - left);
-      // final textX = paddedLeft;
-      // final textY = top;
-      // textPainter.paint(canvas, Offset(textX, textY));
     }
   }
 
@@ -137,7 +120,6 @@ class ImageWithTextLines extends StatefulWidget {
 }
 
 class _ImageWithTextLinesState extends State<ImageWithTextLines> {
-  TextLine? _textLine;
   List<String> convertedTextBlockList = [];
   List<TextLine> textLines = [];
   @override
