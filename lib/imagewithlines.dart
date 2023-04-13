@@ -22,6 +22,60 @@ class TextBlockPainters extends CustomPainter {
     mypaint(canvas, size);
   }
 
+  void _renderText(Canvas canvas, Rect rect, final text, final right,final left,final paddedLeft,final top) {
+    double minFontSize = 1;
+    double maxFontSize = rect.height;
+    double fontSize = _findOptimalFontSize(minFontSize, maxFontSize, rect,text,right,left);
+
+    TextStyle textStyle = TextStyle(fontSize: fontSize, color: Colors.black);
+    TextSpan textSpan = TextSpan(text: text, style: textStyle);
+
+    TextPainter textPainter = TextPainter(
+      text: textSpan,
+      textDirection: TextDirection.ltr,
+      textAlign: TextAlign.justify,
+    );
+
+    textPainter.layout(maxWidth: right - left);
+
+    final textX = paddedLeft;
+    final textY = top;
+    textPainter.paint(canvas, Offset(textX, textY));
+  }
+
+  double _findOptimalFontSize(
+      double minFontSize, double maxFontSize, Rect rect,final text,final right,final left) {
+    double epsilon = 0.1;
+
+    while ((maxFontSize - minFontSize) > epsilon) {
+      double midFontSize = (minFontSize + maxFontSize) / 2;
+      if (_isOverflowing(midFontSize, rect,text,right,left)) {
+        maxFontSize = midFontSize;
+      } else {
+        minFontSize = midFontSize;
+      }
+    }
+
+    return minFontSize;
+  }
+
+  bool _isOverflowing(double fontSize, Rect rect,final text,final right,final left) {
+    TextStyle textStyle = TextStyle(fontSize: fontSize);
+    TextSpan textSpan = TextSpan(text: text, style: textStyle);
+
+    TextPainter textPainter = TextPainter(
+      text: textSpan,
+      textDirection: TextDirection.ltr,
+      textAlign: TextAlign.justify,
+      maxLines: (rect.height / fontSize).floor(),
+    );
+
+    textPainter.layout(maxWidth: right - left);
+
+    return textPainter.didExceedMaxLines ||
+        textPainter.size.height > rect.height;
+  }
+
   void mypaint(Canvas canvas, Size size) async {
     double padding = 4.0;
     final bgcolor = Paint()
@@ -42,22 +96,25 @@ class TextBlockPainters extends CustomPainter {
 
       final paddedLeft = left + padding;
       canvas.drawRect(Rect.fromLTRB(left, top, right, bottom), bgcolor);
-      final textPainter = TextPainter(
-        text: TextSpan(
-          text: convertedBlocks[textBlocks.indexOf(textBlock)],
-          style: const TextStyle(
-              fontSize: 8.5,
-              fontStyle: FontStyle.normal,
-              backgroundColor: Color.fromRGBO(248, 248, 248, 255),
-              color: Colors.black),
-        ),
-        textDirection: TextDirection.ltr,
-        textAlign: TextAlign.justify,
-      );
-      textPainter.layout(maxWidth: right - left);
-      final textX = paddedLeft;
-      final textY = top;
-      textPainter.paint(canvas, Offset(textX, textY));
+
+      _renderText(canvas, Rect.fromLTRB(left, top, right, bottom), convertedBlocks[textBlocks.indexOf(textBlock)],right,left,paddedLeft,top);
+
+      // final textPainter = TextPainter(
+      //   text: TextSpan(
+      //     text: convertedBlocks[textBlocks.indexOf(textBlock)],
+      //     style: const TextStyle(
+      //         fontSize: 8.5,
+      //         fontStyle: FontStyle.normal,
+      //         backgroundColor: Color.fromRGBO(248, 248, 248, 255),
+      //         color: Colors.black),
+      //   ),
+      //   textDirection: TextDirection.ltr,
+      //   textAlign: TextAlign.justify,
+      // );
+      // textPainter.layout(maxWidth: right - left);
+      // final textX = paddedLeft;
+      // final textY = top;
+      // textPainter.paint(canvas, Offset(textX, textY));
     }
   }
 
