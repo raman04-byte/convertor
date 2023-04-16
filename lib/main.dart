@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:provider/provider.dart';
 import 'package:tts/imagewithlines.dart';
 import 'package:tts/utils/imagepicker.dart';
 import 'package:tts/utils/textrecognizer.dart';
+import './utils/providers.dart';
 
 void main() {
   runApp(const MyApp());
@@ -20,14 +22,18 @@ class _MyAppState extends State<MyApp> {
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Flutter Demo',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-        
+    return ChangeNotifierProvider(
+      create: (context) {
+        return ChangeLines();
+      },
+      child: MaterialApp(
+        title: 'Flutter Demo',
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(
+          primarySwatch: Colors.blue,
+        ),
+        home: const MyHomePage(title: 'Flutter Demo Home Page'),
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
     );
   }
 }
@@ -56,20 +62,22 @@ class _MyHomePageState extends State<MyHomePage> {
                 title: const Text('Camera'),
                 onTap: () async {
                   // Handle share action
-                  String path= await imagePickers(context,ImageSource.camera);
-                  if (path!= null) {
+                  String path = await imagePickers(context, ImageSource.camera);
+                  if (path != null) {
                     setState(() {
                       imagePath = path;
                     });
                     await textRecognizer(path).then((value) {
-                        textBlock=value;
+                      textBlock = value;
                     });
                     Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => ImageWithTextLines(
-                          imagePath: imagePath, textBlock: textBlock,),
-                    ));
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ImageWithTextLines(
+                            imagePath: imagePath,
+                            textBlock: textBlock,
+                          ),
+                        ));
                   }
                 }),
             ListTile(
@@ -77,10 +85,10 @@ class _MyHomePageState extends State<MyHomePage> {
               title: const Text('Gallery'),
               onTap: () async {
                 // Handle share action
-                String path = await imagePickers(context,ImageSource.gallery);
+                String path = await imagePickers(context, ImageSource.gallery);
                 if (path != null) {
                   setState(() {
-                    imagePath =path;
+                    imagePath = path;
                   });
                   await textRecognizer(path).then((value) {
                     textBlock = value;
@@ -106,8 +114,7 @@ class _MyHomePageState extends State<MyHomePage> {
       child: Scaffold(
           body: const Center(
             child: Text('Select Image'),
-          )
-          ,
+          ),
           floatingActionButton: FloatingActionButton.extended(
               onPressed: _showModalSheet, label: const Text('Scan'))),
     );
