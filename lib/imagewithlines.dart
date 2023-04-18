@@ -18,7 +18,6 @@ class TextBlockPainters extends CustomPainter {
     required this.imageSize,
     required this.convertedBlocks,
   });
-
   @override
   void paint(Canvas canvas, Size size) {
     mypaint(canvas, size);
@@ -33,7 +32,6 @@ class TextBlockPainters extends CustomPainter {
 
     TextStyle textStyle = TextStyle(fontSize: fontSize, color: Colors.black);
     TextSpan textSpan = TextSpan(text: text, style: textStyle);
-
     TextPainter textPainter = TextPainter(
       text: textSpan,
       textDirection: TextDirection.ltr,
@@ -42,7 +40,7 @@ class TextBlockPainters extends CustomPainter {
 
     textPainter.layout(maxWidth: right - left);
 
-    final textX = paddedLeft;
+    final textX = paddedLeft - 4;
     final textY = top;
     textPainter.paint(canvas, Offset(textX, textY));
   }
@@ -122,38 +120,40 @@ class TextBlockPainters extends CustomPainter {
   }
 }
 
-class TextLinePainter extends CustomPainter {
-  final TextLine textLine;
+class TextBlockPainter extends CustomPainter {
+  final TextBlock textBlock;
   final Size imageSize;
-  TextLinePainter({required this.textLine, required this.imageSize});
-  FlutterTts flutterTts = FlutterTts();
 
+  TextBlockPainter({
+    required this.textBlock,
+    required this.imageSize,
+  });
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.blue.withOpacity(0.15)
-      ..style = PaintingStyle.fill
-      ..strokeWidth = 1.0;
+    mypaint(canvas, size);
+  }
 
+  void mypaint(Canvas canvas, Size size) async {
+    double padding = 4.0;
+    final bgcolor = Paint()
+      ..color = Colors.green.withOpacity(0.2)
+      ..style = PaintingStyle.fill;
     final rect = Rect.fromLTRB(
-        textLine.boundingBox.left,
-        textLine.boundingBox.top,
-        textLine.boundingBox.right,
-        textLine.boundingBox.bottom);
+      textBlock.boundingBox.left,
+      textBlock.boundingBox.top,
+      textBlock.boundingBox.right,
+      textBlock.boundingBox.bottom,
+    );
 
     final left = rect.left * size.width / imageSize.width;
     final top = rect.top * size.height / imageSize.height;
     final right = rect.right * size.width / imageSize.width;
     final bottom = rect.bottom * size.height / imageSize.height;
-
-    canvas.drawRect(Rect.fromLTRB(left, top, right, bottom), paint);
+    canvas.drawRect(Rect.fromLTRB(left, top, right, bottom), bgcolor);
   }
 
   @override
-  bool shouldRepaint(TextLinePainter oldDelegate) {
-    return oldDelegate.textLine != textLine ||
-        oldDelegate.imageSize != imageSize;
-  }
+  bool shouldRepaint(TextBlockPainter oldDelegate) => true;
 }
 
 class ImageWithTextLines extends StatefulWidget {
@@ -173,13 +173,111 @@ class _ImageWithTextLinesState extends State<ImageWithTextLines> {
   bool isSpeaking = false;
   FlutterTts flutterTts = FlutterTts();
   List<TextBlock> convertedLanguageTextBlock = [];
-
+  TextBlock? currentBlock;
   @override
   void initState() {
     super.initState();
     extractLinesFromBlocks(widget.textBlock);
     textIntoBlockConverter();
     extractLines();
+    initTts();
+    // // printAvaliableVoices();
+    // flutterTts.setLanguage('hi-IN');
+    // printAvaliableVoices();
+  }
+// name: hi-in-x-hic-local, locale: hi-IN
+// {name: hi-IN-language, locale: hi-IN}
+  // Future<void> printAvaliableVoices() async {
+  //   List<dynamic> voices = await flutterTts.getVoices;
+  //   if (voices != null) {
+  //     print('Available voices:');
+  //     voices.forEach((voice) => print(voice));
+  //   } else {
+  //     print("Nothing to print");
+  //   }
+  // }
+
+  initTts() {
+    flutterTts = FlutterTts();
+
+    _setAwaitOptions();
+    _setEngines();
+
+    flutterTts.setStartHandler(() {
+      setState(() {
+        if (kDebugMode) {
+          print("Playing");
+        }
+      });
+    });
+
+    flutterTts.setInitHandler(() {
+      setState(() {
+        if (kDebugMode) {
+          print("TTS Initialized");
+        }
+      });
+    });
+    flutterTts.setCompletionHandler(() {
+      setState(() {
+        if (kDebugMode) {
+          print("Complete");
+        }
+      });
+    });
+
+    flutterTts.setCancelHandler(() {
+      setState(() {
+        if (kDebugMode) {
+          print("Canceling");
+        }
+      });
+    });
+
+    flutterTts.setPauseHandler(() {
+      setState(() {
+        if (kDebugMode) {
+          print("Paused");
+        }
+      });
+    });
+
+    flutterTts.setContinueHandler(() {
+      setState(() {
+        if (kDebugMode) {
+          print("Continued");
+        }
+      });
+    });
+
+    flutterTts.setLanguage('hi-IN');
+    flutterTts.setVoice({"name": "hi-in-x-hic-local", "locale": "hi-IN"});
+    
+    flutterTts.setErrorHandler((msg) {
+      setState(() {
+        if (kDebugMode) {
+          print("error: $msg");
+        }
+      });
+    });
+    flutterTts.setProgressHandler((text, start, end, word) {
+      if (kDebugMode) {
+        print(word);
+      }
+      // setState(() {});
+    });
+  }
+
+  Future _setAwaitOptions() async {
+    await flutterTts.awaitSpeakCompletion(true);
+    if (kDebugMode) {
+      print("Await Completion");
+    }
+  }
+
+  Future<dynamic> _setEngines() async {
+    String engine = await flutterTts.getDefaultEngine;
+    flutterTts.setEngine(engine);
   }
 
   void textIntoBlockConverter() async {
@@ -196,15 +294,16 @@ class _ImageWithTextLinesState extends State<ImageWithTextLines> {
     }
   }
 
-  Future<void> speaklines(
-    int currentindex,
-  ) async {
+  Future<void> speaklines(int currentindex,) async {
     if (currentindex >= widget.textBlock.length) {
       return;
     }
-    final provovj = Provider.of<ChangeLines>(context, listen: false);
-    provovj.Textblock = widget.textBlock[currentindex];
-    currentBlock = provovj.textBlock;
+    setState(() {
+      if (kDebugMode) {
+        print("state changes");
+      }
+      currentBlock = widget.textBlock[currentindex];
+    });
     flutterTts.speak(convertedLanguageBlockList[currentindex]).whenComplete(() {
       if (isSpeaking) {
         speaklines(currentindex + 1);
@@ -212,7 +311,7 @@ class _ImageWithTextLinesState extends State<ImageWithTextLines> {
         if (kDebugMode) {
           print('not run+${_textLine!.text}');
         }
-        isSpeaking = true;
+        isSpeaking = false;
         return;
       }
     });
@@ -232,7 +331,6 @@ class _ImageWithTextLinesState extends State<ImageWithTextLines> {
         textBlock.expand((block) => block.lines).map((line) => line).toList();
   }
 
-  TextBlock? currentBlock;
   TextBlock? _findTappedTextBlock(Offset localPath, Size size, Size imageSize) {
     for (var textblock in widget.textBlock) {
       final rect = Rect.fromLTRB(
@@ -249,12 +347,20 @@ class _ImageWithTextLinesState extends State<ImageWithTextLines> {
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<Size>(
-      future: _getImageSize(widget.imagePath),
-      builder: (BuildContext context, AsyncSnapshot<Size> snapshot) {
-        if (snapshot.hasData) {
-          return SizedBox(
-            child: Stack(
+    return Scaffold(
+      appBar: AppBar(title: const Text("Appbar")),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          flutterTts.stop();
+          isSpeaking = false;
+        },
+      ),
+      body: FutureBuilder<Size>(
+        future: _getImageSize(widget.imagePath),
+        builder: (BuildContext context, AsyncSnapshot<Size> snapshot) {
+          if (snapshot.hasData) {
+            return SizedBox(
+                child: Stack(
               fit: StackFit.expand,
               children: [
                 Image.file(
@@ -265,22 +371,20 @@ class _ImageWithTextLinesState extends State<ImageWithTextLines> {
                     widget.textBlock.length)
                   CustomPaint(
                     painter: TextBlockPainters(
-                        textBlocks: widget.textBlock,
-                        imageSize: snapshot.data!,
-                        convertedBlocks: convertedLanguageBlockList),
+                      textBlocks: widget.textBlock,
+                      imageSize: snapshot.data!,
+                      convertedBlocks: convertedLanguageBlockList,
+                    ),
                   ),
                 if (currentBlock != null)
-                  Consumer<ChangeLines>(
-                    builder: (context, value, _) {
-                      return const CustomPaint();
-                    },
+                  CustomPaint(
+                    painter: TextBlockPainter(
+                        imageSize: snapshot.data!, textBlock: currentBlock!),
                   ),
                 GestureDetector(
                   onTapUp: (TapUpDetails details) async {
-                    if (kDebugMode) {
-                      print('cxli');
-                    }
                     final RenderBox box =
+                        // ignore: use_build_context_synchronously
                         context.findRenderObject() as RenderBox;
                     final Offset localPosition =
                         box.globalToLocal(details.globalPosition);
@@ -288,38 +392,29 @@ class _ImageWithTextLinesState extends State<ImageWithTextLines> {
                     final tappedTextBlock = _findTappedTextBlock(
                         localPosition, size, snapshot.data!);
                     if (tappedTextBlock != null) {
-                      speaklines(widget.textBlock.indexOf(tappedTextBlock));
-                      if (kDebugMode) {
-                        print(convertedLanguageBlockList);
+                      if (isSpeaking) {
+                        flutterTts.stop().then((value) => speaklines(
+                            widget.textBlock.indexOf(tappedTextBlock)));
+                      } else {
+                        isSpeaking = true;
+                        speaklines(widget.textBlock.indexOf(tappedTextBlock));
                       }
                     } else {
                       if (kDebugMode) {
                         print('null');
                       }
                     }
-                    // if (tappedtextLine != null) {
-                    //   if (isSpeaking) {
-                    //     isSpeaking = false;
-                    //     flutterTts.stop().then((value) => speaklines(
-                    //         widget.textLines,
-                    //         widget.textLines.indexOf(tappedtextLine)));
-                    //   } else {
-                    //     isSpeaking = true;
-                    //     speaklines(widget.textLines,
-                    //         widget.textLines.indexOf(tappedtextLine));
-                    //   }
-                    // }
                   },
-                )
+                ),
               ],
-            ),
-          );
-        } else {
-          return const Center(
-            child: CircularProgressIndicator(),
-          );
-        }
-      },
+            ));
+          } else {
+            return const Center(
+              child: CircularProgressIndicator(),
+            );
+          }
+        },
+      ),
     );
   }
 

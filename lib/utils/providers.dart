@@ -5,7 +5,7 @@ TextBlock? _textblock;
 TextBlock? get textBlock{
     return _textblock;
 }
-set Textblock(TextBlock? newblock){
+set textblock(TextBlock? newblock){
     _textblock=newblock;
     notifyListeners();
 }
