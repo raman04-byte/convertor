@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
+import 'package:google_ml_kit/google_ml_kit.dart';
 
 class TextBlockPainters extends CustomPainter {
   final List<TextBlock> textBlocks;
@@ -121,7 +122,6 @@ class TextBlockPainters extends CustomPainter {
 class TextBlockPainter extends CustomPainter {
   final TextBlock textBlock;
   final Size imageSize;
-
   TextBlockPainter({
     required this.textBlock,
     required this.imageSize,
@@ -132,7 +132,6 @@ class TextBlockPainter extends CustomPainter {
   }
 
   void mypaint(Canvas canvas, Size size) async {
-    double padding = 4.0;
     final bgcolor = Paint()
       ..color = Colors.green.withOpacity(0.2)
       ..style = PaintingStyle.fill;
@@ -148,10 +147,17 @@ class TextBlockPainter extends CustomPainter {
     final right = rect.right * size.width / imageSize.width;
     final bottom = rect.bottom * size.height / imageSize.height;
     canvas.drawRect(Rect.fromLTRB(left, top, right, bottom), bgcolor);
+    final highlightText = Paint()
+      ..color = Colors.black
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 4;
   }
 
   @override
-  bool shouldRepaint(TextBlockPainter oldDelegate) => true;
+  bool shouldRepaint(TextBlockPainter oldDelegate) {
+    return oldDelegate.textBlock != textBlock ||
+        oldDelegate.imageSize != imageSize;
+  }
 }
 
 class ImageWithTextLines extends StatefulWidget {
@@ -172,6 +178,9 @@ class _ImageWithTextLinesState extends State<ImageWithTextLines> {
   FlutterTts flutterTts = FlutterTts();
   List<TextBlock> convertedLanguageTextBlock = [];
   TextBlock? currentBlock;
+  String completeText = '';
+  String wordToBeSpoken = '';
+
   @override
   void initState() {
     super.initState();
@@ -179,22 +188,7 @@ class _ImageWithTextLinesState extends State<ImageWithTextLines> {
     textIntoBlockConverter();
     extractLines();
     initTts();
-    // // printAvaliableVoices();
-    // flutterTts.setLanguage('hi-IN');
-    // printAvaliableVoices();
   }
-// name: hi-in-x-hic-local, locale: hi-IN
-// {name: hi-IN-language, locale: hi-IN}
-  // Future<void> printAvaliableVoices() async {
-  //   List<dynamic> voices = await flutterTts.getVoices;
-  //   if (voices != null) {
-  //     print('Available voices:');
-  //     voices.forEach((voice) => print(voice));
-  //   } else {
-  //     print("Nothing to print");
-  //   }
-  // }
-
   initTts() {
     flutterTts = FlutterTts();
 
@@ -292,31 +286,31 @@ class _ImageWithTextLinesState extends State<ImageWithTextLines> {
     }
   }
 
-  Future<void> speaklines(
-    int currentindex,
-  ) async {
-    if (currentindex >= widget.textBlock.length) {
-      return;
-    }
-    setState(() {
-      if (kDebugMode) {
-        print("state changes");
-      }
-      currentBlock = widget.textBlock[currentindex];
-    });
-    flutterTts.speak(convertedLanguageBlockList[currentindex]).whenComplete(() {
-      if (isSpeaking) {
-        // flutterTts.stop();
-        // isSpeaking = false;
-        speaklines(currentindex + 1);
-      } else {
+  Future<void> speaklines(int currentindex) async {
+    while (currentindex < widget.textBlock.length) {
+      setState(() {
         if (kDebugMode) {
-          print('not run+${_textLine!.text}');
+          print("state changes");
         }
-        isSpeaking = false;
-        return;
-      }
-    });
+        currentBlock = widget.textBlock[currentindex];
+      });
+
+      await flutterTts
+          .speak(convertedLanguageBlockList[currentindex])
+          .then((_) {
+        if (isSpeaking) {
+          // flutterTts.stop();
+          // isSpeaking = false;
+          currentindex++;
+        } else {
+          if (kDebugMode) {
+            print('not run+${_textLine!.text}');
+          }
+          isSpeaking = false;
+          return;
+        }
+      });
+    }
   }
 
   void extractLines() {
@@ -381,7 +375,9 @@ class _ImageWithTextLinesState extends State<ImageWithTextLines> {
                 if (currentBlock != null)
                   CustomPaint(
                     painter: TextBlockPainter(
-                        imageSize: snapshot.data!, textBlock: currentBlock!),
+                      imageSize: snapshot.data!,
+                      textBlock: currentBlock!,
+                    ),
                   ),
                 GestureDetector(
                   onTapUp: (TapUpDetails details) async {
@@ -435,6 +431,14 @@ class _ImageWithTextLinesState extends State<ImageWithTextLines> {
     );
     return completer.future;
   }
+  Widget _textFromInput(int start, int end) => Container(
+      alignment: Alignment.topCenter,
+      padding: const EdgeInsets.only(top: 25.0, left: 25.0, right: 25.0),
+      child: RichText(
+        textAlign: TextAlign.center,
+        text: const TextSpan(children: <TextSpan>[
+          ]),
+      ));
 }
 
 class OnDeviceTranslator {
@@ -668,3 +672,32 @@ extension BCP47Code on TranslateLanguage {
     }
   }
 }
+
+
+
+  // Future<void> speaklines(
+  //   int currentindex,
+  // ) async {
+  //   if (currentindex >= widget.textBlock.length) {
+  //     return;
+  //   }
+  //   setState(() {
+  //     if (kDebugMode) {
+  //       print("state changes");
+  //     }
+  //     currentBlock = widget.textBlock[currentindex];
+  //   });
+  //   flutterTts.speak(convertedLanguageBlockList[currentindex]).whenComplete(() {
+  //     if (isSpeaking) {
+  // flutterTts.stop();
+  // isSpeaking = false;
+  //       speaklines(currentindex + 1);
+  //     } else {
+  //       if (kDebugMode) {
+  //         print('not run+${_textLine!.text}');
+  //       }
+  //       isSpeaking = false;
+  //       return;
+  //     }
+  //   });
+  // }
