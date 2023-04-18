@@ -5,8 +5,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
-import 'package:provider/provider.dart';
-import 'utils/providers.dart';
 
 class TextBlockPainters extends CustomPainter {
   final List<TextBlock> textBlocks;
@@ -252,7 +250,7 @@ class _ImageWithTextLinesState extends State<ImageWithTextLines> {
 
     flutterTts.setLanguage('hi-IN');
     flutterTts.setVoice({"name": "hi-in-x-hic-local", "locale": "hi-IN"});
-    
+
     flutterTts.setErrorHandler((msg) {
       setState(() {
         if (kDebugMode) {
@@ -294,7 +292,9 @@ class _ImageWithTextLinesState extends State<ImageWithTextLines> {
     }
   }
 
-  Future<void> speaklines(int currentindex,) async {
+  Future<void> speaklines(
+    int currentindex,
+  ) async {
     if (currentindex >= widget.textBlock.length) {
       return;
     }
@@ -306,6 +306,8 @@ class _ImageWithTextLinesState extends State<ImageWithTextLines> {
     });
     flutterTts.speak(convertedLanguageBlockList[currentindex]).whenComplete(() {
       if (isSpeaking) {
+        // flutterTts.stop();
+        // isSpeaking = false;
         speaklines(currentindex + 1);
       } else {
         if (kDebugMode) {
@@ -384,7 +386,6 @@ class _ImageWithTextLinesState extends State<ImageWithTextLines> {
                 GestureDetector(
                   onTapUp: (TapUpDetails details) async {
                     final RenderBox box =
-                        // ignore: use_build_context_synchronously
                         context.findRenderObject() as RenderBox;
                     final Offset localPosition =
                         box.globalToLocal(details.globalPosition);
@@ -410,7 +411,9 @@ class _ImageWithTextLinesState extends State<ImageWithTextLines> {
             ));
           } else {
             return const Center(
-              child: CircularProgressIndicator(),
+              child: CircularProgressIndicator(
+                color: Color.fromARGB(255, 255, 238, 87),
+              ),
             );
           }
         },
