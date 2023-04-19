@@ -145,7 +145,7 @@ packages:
     source: hosted
     version: "0.5.0"
   google_mlkit_commons:
-    dependency: "direct main"
+    dependency: transitive
     description:
       name: google_mlkit_commons
       sha256: af63771903947d5523d9e991a939a4b8bf994f11661c9b9c8a71d7d3997115f8
@@ -376,14 +376,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.0.0"
-  palette_generator:
-    dependency: "direct main"
-    description:
-      name: palette_generator
-      sha256: "0e3cd6974e10b1434dcf4cf779efddb80e2696585e273a2dbede6af52f94568d"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.3.3+2"
   path:
     dependency: transitive
     description:

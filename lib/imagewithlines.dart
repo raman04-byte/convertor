@@ -5,7 +5,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
-import 'package:google_ml_kit/google_ml_kit.dart';
 
 class TextBlockPainters extends CustomPainter {
   final List<TextBlock> textBlocks;
@@ -147,10 +146,6 @@ class TextBlockPainter extends CustomPainter {
     final right = rect.right * size.width / imageSize.width;
     final bottom = rect.bottom * size.height / imageSize.height;
     canvas.drawRect(Rect.fromLTRB(left, top, right, bottom), bgcolor);
-    final highlightText = Paint()
-      ..color = Colors.black
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 4;
   }
 
   @override
@@ -178,9 +173,8 @@ class _ImageWithTextLinesState extends State<ImageWithTextLines> {
   FlutterTts flutterTts = FlutterTts();
   List<TextBlock> convertedLanguageTextBlock = [];
   TextBlock? currentBlock;
-  String completeText = '';
+  List<String> completeString = [];
   String wordToBeSpoken = '';
-
   @override
   void initState() {
     super.initState();
@@ -189,6 +183,7 @@ class _ImageWithTextLinesState extends State<ImageWithTextLines> {
     extractLines();
     initTts();
   }
+
   initTts() {
     flutterTts = FlutterTts();
 
@@ -241,10 +236,6 @@ class _ImageWithTextLinesState extends State<ImageWithTextLines> {
         }
       });
     });
-
-    flutterTts.setLanguage('hi-IN');
-    flutterTts.setVoice({"name": "hi-in-x-hic-local", "locale": "hi-IN"});
-
     flutterTts.setErrorHandler((msg) {
       setState(() {
         if (kDebugMode) {
@@ -253,10 +244,13 @@ class _ImageWithTextLinesState extends State<ImageWithTextLines> {
       });
     });
     flutterTts.setProgressHandler((text, start, end, word) {
-      if (kDebugMode) {
-        print(word);
+      completeString = text.split(" ");
+      wordToBeSpoken = word;
+      for (String element in completeString) {
+        if (kDebugMode) {
+          print(element);
+        }
       }
-      // setState(() {});
     });
   }
 
@@ -294,23 +288,18 @@ class _ImageWithTextLinesState extends State<ImageWithTextLines> {
         }
         currentBlock = widget.textBlock[currentindex];
       });
-
       await flutterTts
           .speak(convertedLanguageBlockList[currentindex])
-          .then((_) {
+          .then((value) {
         if (isSpeaking) {
-          // flutterTts.stop();
-          // isSpeaking = false;
           currentindex++;
-        } else {
-          if (kDebugMode) {
-            print('not run+${_textLine!.text}');
-          }
-          isSpeaking = false;
-          return;
         }
       });
+      if (!isSpeaking) {
+        return;
+      }
     }
+    return;
   }
 
   void extractLines() {
@@ -390,15 +379,19 @@ class _ImageWithTextLinesState extends State<ImageWithTextLines> {
                         localPosition, size, snapshot.data!);
                     if (tappedTextBlock != null) {
                       if (isSpeaking) {
-                        flutterTts.stop().then((value) => speaklines(
-                            widget.textBlock.indexOf(tappedTextBlock)));
+                        isSpeaking = false;
+                        if (kDebugMode) {
+                          print('stopping');
+                        }
+                        await flutterTts.stop().then((value) async {
+                          await Future.delayed(
+                              const Duration(milliseconds: 500));
+                          isSpeaking = true;
+                          speaklines(widget.textBlock.indexOf(tappedTextBlock));
+                        });
                       } else {
                         isSpeaking = true;
                         speaklines(widget.textBlock.indexOf(tappedTextBlock));
-                      }
-                    } else {
-                      if (kDebugMode) {
-                        print('null');
                       }
                     }
                   },
@@ -431,13 +424,13 @@ class _ImageWithTextLinesState extends State<ImageWithTextLines> {
     );
     return completer.future;
   }
+
   Widget _textFromInput(int start, int end) => Container(
       alignment: Alignment.topCenter,
       padding: const EdgeInsets.only(top: 25.0, left: 25.0, right: 25.0),
       child: RichText(
         textAlign: TextAlign.center,
-        text: const TextSpan(children: <TextSpan>[
-          ]),
+        text: const TextSpan(children: <TextSpan>[]),
       ));
 }
 
@@ -673,31 +666,29 @@ extension BCP47Code on TranslateLanguage {
   }
 }
 
-
-
-  // Future<void> speaklines(
-  //   int currentindex,
-  // ) async {
-  //   if (currentindex >= widget.textBlock.length) {
-  //     return;
-  //   }
-  //   setState(() {
-  //     if (kDebugMode) {
-  //       print("state changes");
-  //     }
-  //     currentBlock = widget.textBlock[currentindex];
-  //   });
-  //   flutterTts.speak(convertedLanguageBlockList[currentindex]).whenComplete(() {
-  //     if (isSpeaking) {
-  // flutterTts.stop();
-  // isSpeaking = false;
-  //       speaklines(currentindex + 1);
-  //     } else {
-  //       if (kDebugMode) {
-  //         print('not run+${_textLine!.text}');
-  //       }
-  //       isSpeaking = false;
-  //       return;
-  //     }
-  //   });
-  // }
+// Future<void> speaklines(
+//   int currentindex,
+// ) async {
+//   if (currentindex >= widget.textBlock.length) {
+//     return;
+//   }
+//   setState(() {
+//     if (kDebugMode) {
+//       print("state changes");
+//     }
+//     currentBlock = widget.textBlock[currentindex];
+//   });
+//   flutterTts.speak(convertedLanguageBlockList[currentindex]).whenComplete(() {
+//     if (isSpeaking) {
+// flutterTts.stop();
+// isSpeaking = false;
+//       speaklines(currentindex + 1);
+//     } else {
+//       if (kDebugMode) {
+//         print('not run+${_textLine!.text}');
+//       }
+//       isSpeaking = false;
+//       return;
+//     }
+//   });
+// }
