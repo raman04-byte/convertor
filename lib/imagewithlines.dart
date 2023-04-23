@@ -5,15 +5,18 @@ import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
+import 'package:image/image.dart' as img;
 
 class TextBlockPainters extends CustomPainter {
   final List<TextBlock> textBlocks;
   final Size imageSize;
+  final String imagePath;
   final List<String> convertedBlocks;
 
   TextBlockPainters({
     required this.textBlocks,
     required this.imageSize,
+    required this.imagePath,
     required this.convertedBlocks,
   });
   @override
@@ -21,14 +24,59 @@ class TextBlockPainters extends CustomPainter {
     mypaint(canvas, size);
   }
 
-  void _renderText(Canvas canvas, Rect rect, final text, final right,
-      final left, final paddedLeft, final top, TextBlock textBlock) {
+  int hexOfRGBA(int r, int g, int b, {double opacity = 1}) {
+    /// Converts an arbitrary RGBA value to a hex equivatent
+    r = (r < 0) ? -r : r;
+    g = (g < 0) ? -g : g;
+    b = (b < 0) ? -b : b;
+    opacity = (opacity < 0) ? -opacity : opacity;
+    opacity = (opacity > 1) ? 255 : opacity * 255;
+    r = (r > 255) ? 255 : r;
+    g = (g > 255) ? 255 : g;
+    b = (b > 255) ? 255 : b;
+    int a = opacity.toInt();
+    return int.parse(
+        '0x${a.toRadixString(16)}${r.toRadixString(16)}${g.toRadixString(16)}${b.toRadixString(16)}');
+  }
+
+  Color _getColor(double x, double y) {
+    /// Generates a Color object from the color present at the
+    /// given pixel location.
+
+    Uint8List data;
+    img.Image? photo;
+    try {
+      data = File(imagePath).readAsBytesSync();
+      photo = img.decodeImage(data);
+      double px = x;
+      double py = y;
+
+      var pixel32 = photo!.getPixelSafe(px.toInt(), py.toInt());
+      int hex = hexOfRGBA(
+          pixel32.r.toInt(), pixel32.g.toInt(), pixel32.b.toInt(),
+          opacity: pixel32.a.toDouble());
+      return Color(hex);
+    } catch (ex) {
+      return Colors.white;
+    }
+  }
+
+  void _renderText(
+      Canvas canvas,
+      Rect rect,
+      final text,
+      final Color textColor,
+      final right,
+      final left,
+      final paddedLeft,
+      final top,
+      TextBlock textBlock) {
     double minFontSize = 1;
     double maxFontSize = rect.height;
     double fontSize =
         _findOptimalFontSize(minFontSize, maxFontSize, rect, text, right, left);
 
-    TextStyle textStyle = TextStyle(fontSize: fontSize, color: Colors.black);
+    TextStyle textStyle = TextStyle(fontSize: fontSize, color: textColor);
     TextSpan textSpan = TextSpan(text: text, style: textStyle);
     TextPainter textPainter = TextPainter(
       text: textSpan,
@@ -79,9 +127,7 @@ class TextBlockPainters extends CustomPainter {
 
   void mypaint(Canvas canvas, Size size) async {
     double padding = 4.0;
-    final bgcolor = Paint()
-      ..color = Colors.white
-      ..style = PaintingStyle.fill;
+
     for (var textBlock in textBlocks) {
       final rect = Rect.fromLTRB(
         textBlock.boundingBox.left,
@@ -89,7 +135,10 @@ class TextBlockPainters extends CustomPainter {
         textBlock.boundingBox.right,
         textBlock.boundingBox.bottom,
       );
-
+      final color = _getColor(rect.left, rect.top);
+      final bgcolor = Paint()
+        ..color = color
+        ..style = PaintingStyle.fill;
       final left = rect.left * size.width / imageSize.width;
       final top = rect.top * size.height / imageSize.height;
       final right = rect.right * size.width / imageSize.width;
@@ -97,16 +146,18 @@ class TextBlockPainters extends CustomPainter {
 
       final paddedLeft = left + padding;
       canvas.drawRect(Rect.fromLTRB(left, top, right, bottom), bgcolor);
-
+      color.computeLuminance();
       _renderText(
-          canvas,
-          Rect.fromLTRB(left, top, right, bottom),
-          convertedBlocks[textBlocks.indexOf(textBlock)],
-          right,
-          left,
-          paddedLeft,
-          top,
-          textBlock);
+        canvas,
+        Rect.fromLTRB(left, top, right, bottom),
+        convertedBlocks[textBlocks.indexOf(textBlock)],
+        color.computeLuminance() > 0.5 ? Colors.black : Colors.white,
+        right,
+        left,
+        paddedLeft,
+        top,
+        textBlock,
+      );
     }
   }
 
@@ -358,6 +409,7 @@ class _ImageWithTextLinesState extends State<ImageWithTextLines> {
                     painter: TextBlockPainters(
                       textBlocks: widget.textBlock,
                       imageSize: snapshot.data!,
+                      imagePath: widget.imagePath,
                       convertedBlocks: convertedLanguageBlockList,
                     ),
                   ),
